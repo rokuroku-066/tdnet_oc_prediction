@@ -18,7 +18,16 @@ class DatasetBuilder:
         )
         prices = prices.copy()
         prices["date"] = pd.to_datetime(prices["date"]).dt.normalize()
-        trading = prices["date"].drop_duplicates().sort_values().reset_index(drop=True)
+        if calendar is not None:
+            cal = calendar.copy()
+            required_calendar_cols = {"date"}
+            missing_calendar_cols = required_calendar_cols - set(cal.columns)
+            if missing_calendar_cols:
+                raise ValueError(f"calendar is missing required columns: {sorted(missing_calendar_cols)}")
+            cal["date"] = pd.to_datetime(cal["date"]).dt.normalize()
+            trading = cal["date"].drop_duplicates().sort_values().reset_index(drop=True)
+        else:
+            trading = prices["date"].drop_duplicates().sort_values().reset_index(drop=True)
         agg["target_date"] = agg["disclosure_date"].apply(lambda x: next_business_day(x, trading))
         merged = agg.merge(
             prices[["stock_code", "date", "open", "close"]],
