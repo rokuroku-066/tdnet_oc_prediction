@@ -1,6 +1,8 @@
 import argparse
-import json
+from datetime import datetime
 from pathlib import Path
+import subprocess
+from zoneinfo import ZoneInfo
 import pandas as pd
 import yaml
 from tdnet_oc_prediction.config.loader import load_config
@@ -8,6 +10,29 @@ from tdnet_oc_prediction.evaluation.evaluator import Evaluator
 from tdnet_oc_prediction.training.trainer import TrainerService
 from tdnet_oc_prediction.utils.io import save_json
 from tdnet_oc_prediction.utils.time import run_id
+
+
+def _get_git_commit_hash() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        return "UNAVAILABLE"
+
+
+def _get_run_timestamp(timezone_name: str) -> str:
+    tz = ZoneInfo(timezone_name) if timezone_name else ZoneInfo("UTC")
+    return datetime.now(tz).isoformat()
+
+
+def _label_distribution(df: pd.DataFrame) -> dict[str, dict[str, float]]:
+    counts = df["y"].value_counts(dropna=False).to_dict()
+    total = len(df)
+    distribution: dict[str, dict[str, float]] = {}
+    for label, count in counts.items():
+        key = "null" if pd.isna(label) else str(label)
+        ratio = (count / total) if total else 0.0
+        distribution[key] = {"count": int(count), "ratio": float(ratio)}
+    return distribution
 
 
 def main(config_path: str) -> str:
@@ -23,7 +48,24 @@ def main(config_path: str) -> str:
     valid_proba = model.predict_proba(va)
     valid_metrics = Evaluator().evaluate(va["y"].values, valid_proba, cfg.model.get("threshold", 0.5))
     save_json(str(out_dir / "metrics_valid.json"), valid_metrics)
-    save_json(str(out_dir / "train_log.json"), {"run_id": rid, "train_size": len(tr), "valid_size": len(va)})
+
+    log_payload = {
+        "run_id": rid,
+        "executed_at": _get_run_timestamp(cfg.project.timezone),
+        "git_commit": _get_git_commit_hash(),
+        "train_size": len(tr),
+        "valid_size": len(va),
+        "label_distribution": {
+            "train": _label_distribution(tr),
+            "valid": _label_distribution(va),
+        },
+        "config_summary": {
+            "model": cfg.model,
+            "split": cfg.split,
+            "seed": cfg.project.seed,
+        },
+    }
+    save_json(str(out_dir / "train_log.json"), log_payload)
     print(rid)
     return rid
 
