@@ -1,0 +1,5 @@
+simulation:
+  threshold_long: 0.55
+  threshold_short: 0.45
+  allow_short: true
+  transaction_cost_bps: 10
