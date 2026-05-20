@@ -1,0 +1,43 @@
+project:
+  name: tdnet_oc_prediction
+  seed: 42
+  timezone: Asia/Tokyo
+
+data:
+  disclosure_source: tdnet_public
+  price_source: stooq
+  disclosure_path: data/raw/disclosures/disclosures.csv
+  price_path: data/raw/prices/prices.csv
+  start_date: '2024-01-01'
+  end_date: '2024-12-31'
+  request_sleep_sec: 0.2
+  request_timeout_sec: 20
+  tdnet_max_pages: 20
+  tdnet_extract_pdf: true
+
+split:
+  method: time_series
+  train_end: '2024-08-31'
+  valid_start: '2024-09-01'
+  valid_end: '2024-10-31'
+  test_start: '2024-11-01'
+  test_end: '2024-12-31'
+
+model:
+  name: tfidf_logreg
+  threshold: 0.5
+  tfidf:
+    max_features: 100000
+    ngram_range: [1, 2]
+    min_df: 3
+    max_df: 0.95
+  classifier:
+    C: 1.0
+    class_weight: balanced
+    max_iter: 1000
+
+simulation:
+  threshold_long: 0.55
+  threshold_short: 0.45
+  allow_short: true
+  transaction_cost_bps: 10
