@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tdnet_oc_prediction"
+version = "0.1.0"
+description = "TDNet open-close prediction research module"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas>=2.0",
+  "numpy>=1.24",
+  "scikit-learn>=1.3",
+  "pyyaml>=6.0",
+  "pydantic>=2.0",
+  "matplotlib>=3.7",
+  "tqdm>=4.65",
+  "joblib>=1.3",
+  "torch>=2.1",
+  "transformers>=4.40",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

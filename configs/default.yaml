@@ -1,0 +1,28 @@
+project:
+  name: tdnet_oc_prediction
+  seed: 42
+  timezone: Asia/Tokyo
+
+data:
+  disclosure_path: data/raw/disclosures/disclosures.csv
+  price_path: data/raw/prices/prices.csv
+  start_date: '2020-04-01'
+  end_date: '2025-04-30'
+
+split:
+  method: time_series
+  train_end: '2022-12-31'
+  valid_start: '2023-01-01'
+  valid_end: '2023-12-31'
+  test_start: '2024-01-01'
+  test_end: '2025-04-30'
+
+model:
+  name: tfidf_logreg
+  threshold: 0.5
+
+simulation:
+  threshold_long: 0.55
+  threshold_short: 0.45
+  allow_short: true
+  transaction_cost_bps: 10

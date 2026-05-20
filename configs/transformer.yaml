@@ -1,0 +1,13 @@
+project:
+  name: tdnet_oc_prediction
+  seed: 42
+model:
+  name: transformer
+  threshold: 0.5
+  pretrained_model_name: cl-tohoku/bert-base-japanese-v3
+  max_length: 512
+  batch_size: 16
+  learning_rate: 2.0e-5
+  epochs: 3
+  weight_decay: 0.01
+  early_stopping_patience: 2
