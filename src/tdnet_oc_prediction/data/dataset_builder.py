@@ -43,10 +43,32 @@ class DatasetBuilder:
         return merged[["sample_id","stock_code","disclosure_date","target_date","text","target_open","target_close","y","num_disclosures"]]
 
 class TimeSeriesSplitter:
-    def __init__(self, split_conf: dict): self.c = split_conf
+    def __init__(self, split_conf: dict):
+        self.c = split_conf
+
     def split(self, dataset: pd.DataFrame) -> dict[str, pd.DataFrame]:
-        d = dataset.copy(); d["disclosure_date"] = pd.to_datetime(d["disclosure_date"])
-        tr = d[d["disclosure_date"] <= self.c["train_end"]]
-        va = d[(d["disclosure_date"] >= self.c["valid_start"]) & (d["disclosure_date"] <= self.c["valid_end"])]
-        te = d[(d["disclosure_date"] >= self.c["test_start"]) & (d["disclosure_date"] <= self.c["test_end"])]
+        train_end = pd.to_datetime(self.c["train_end"])
+        valid_start = pd.to_datetime(self.c["valid_start"])
+        valid_end = pd.to_datetime(self.c["valid_end"])
+        test_start = pd.to_datetime(self.c["test_start"])
+        test_end = pd.to_datetime(self.c["test_end"])
+
+        if not (train_end < valid_start <= valid_end < test_start <= test_end):
+            raise ValueError("Invalid split_conf: train/valid/test date ranges overlap or are out of order")
+
+        if not (test_start > train_end):
+            raise ValueError("Invalid split_conf: test period must be in the future of train period")
+
+        d = dataset.copy()
+        d["disclosure_date"] = pd.to_datetime(d["disclosure_date"])
+        tr = d[d["disclosure_date"] <= train_end]
+        va = d[(d["disclosure_date"] >= valid_start) & (d["disclosure_date"] <= valid_end)]
+        te = d[(d["disclosure_date"] >= test_start) & (d["disclosure_date"] <= test_end)]
+
+        train_dates = set(tr["disclosure_date"])
+        valid_dates = set(va["disclosure_date"])
+        test_dates = set(te["disclosure_date"])
+        if train_dates & valid_dates or train_dates & test_dates or valid_dates & test_dates:
+            raise ValueError("Split result is invalid: disclosure_date sets must be mutually exclusive")
+
         return {"train": tr, "valid": va, "test": te}
