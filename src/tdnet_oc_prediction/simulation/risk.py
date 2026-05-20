@@ -1,11 +1,17 @@
 import numpy as np
 
+def equity_series(net_returns):
+    r = np.array(net_returns, dtype=float)
+    if r.size == 0:
+        return np.array([1.0], dtype=float)
+    return np.cumprod(1 + r)
+
 def simulation_metrics(net_returns):
-    r = np.array(net_returns)
+    r = np.array(net_returns, dtype=float)
     traded = r[r != 0]
     if len(traded) == 0:
         return {'num_trades':0,'win_rate':0.0,'mean_return':0.0,'cumulative_return':0.0,'sharpe_ratio':0.0,'max_drawdown':0.0}
-    eq = np.cumprod(1 + traded)
+    eq = equity_series(traded)
     peak = np.maximum.accumulate(eq)
     dd = (eq - peak) / peak
     return {
