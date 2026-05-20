@@ -47,8 +47,8 @@ def main(config_path: str):
     if prices.empty:
         raise RuntimeError("No price data collected")
 
-    out_d = Path("data/raw/disclosures/disclosures.csv")
-    out_p = Path("data/raw/prices/prices.csv")
+    out_d = Path(data_cfg["disclosure_path"])
+    out_p = Path(data_cfg["price_path"])
     out_d.parent.mkdir(parents=True, exist_ok=True)
     out_p.parent.mkdir(parents=True, exist_ok=True)
     disclosures.to_csv(out_d, index=False)
