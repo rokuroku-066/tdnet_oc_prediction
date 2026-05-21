@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from .calendar import next_business_day
 
@@ -12,7 +13,7 @@ class DatasetBuilder:
     def build(self, disclosures: pd.DataFrame, prices: pd.DataFrame, calendar: pd.DataFrame | None = None) -> pd.DataFrame:
         d = disclosures.copy()
         d["disclosure_date"] = pd.to_datetime(d["disclosure_date"]).dt.normalize()
-        d["text_piece"] = d.apply(lambda r: f"[{r['title']}]\n{r['body_text']}", axis=1)
+        d["text_piece"] = "[" + d["title"] + "]\n" + d["body_text"]
         agg = d.groupby(["stock_code", "disclosure_date"], as_index=False).agg(
             text=("text_piece", "\n\n".join), num_disclosures=("disclosure_id", "count")
         )
@@ -36,10 +37,14 @@ class DatasetBuilder:
             how="left",
         )
         merged = merged.rename(columns={"open": "target_open", "close": "target_close"}).drop(columns=["date"])
-        merged["y"] = merged.apply(lambda r: make_label(r["target_open"], r["target_close"]) if pd.notna(r["target_open"]) and pd.notna(r["target_close"]) else None, axis=1)
+        merged["y"] = np.select(
+            [merged["target_close"] > merged["target_open"], merged["target_close"] < merged["target_open"]],
+            [1, 0],
+            default=np.nan,
+        )
         merged = merged.dropna(subset=["target_date", "target_open", "target_close", "y"]).copy()
         merged["y"] = merged["y"].astype(int)
-        merged["sample_id"] = merged.apply(lambda r: f"{r['stock_code']}_{r['disclosure_date'].date()}", axis=1)
+        merged["sample_id"] = merged["stock_code"].astype(str) + "_" + merged["disclosure_date"].dt.strftime("%Y-%m-%d")
         return merged[["sample_id","stock_code","disclosure_date","target_date","text","target_open","target_close","y","num_disclosures"]]
 
 class TimeSeriesSplitter:
