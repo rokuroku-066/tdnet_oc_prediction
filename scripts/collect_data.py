@@ -1,5 +1,8 @@
 import argparse
+from datetime import timedelta
 from pathlib import Path
+
+import pandas as pd
 
 from tdnet_oc_prediction.config.loader import load_config
 from tdnet_oc_prediction.data.disclosure_client import DisclosureClient
@@ -16,6 +19,17 @@ def main(config_path: str):
     price_source = data_cfg.get("price_source", "csv")
     start_date = data_cfg["start_date"]
     end_date = data_cfg["end_date"]
+    price_end_date = data_cfg.get("price_end_date")
+    if price_end_date is None:
+        price_extra_days = int(data_cfg.get("price_extra_days", 10))
+        price_end_date = (
+            (
+                pd.Timestamp(end_date)
+                + timedelta(days=price_extra_days)
+            )
+            .date()
+            .isoformat()
+        )
 
     if disclosure_source == "csv":
         disclosures = DisclosureClient(data_cfg["disclosure_path"]).fetch(start_date, end_date)
@@ -35,12 +49,12 @@ def main(config_path: str):
     stock_codes = disclosures["stock_code"].astype(str).dropna().unique().tolist()
 
     if price_source == "csv":
-        prices = PriceClient(data_cfg["price_path"]).fetch(stock_codes, start_date, end_date)
+        prices = PriceClient(data_cfg["price_path"]).fetch(stock_codes, start_date, price_end_date)
     elif price_source == "stooq":
         prices = StooqClient(
             sleep_sec=float(data_cfg.get("request_sleep_sec", 0.2)),
             timeout_sec=float(data_cfg.get("request_timeout_sec", 20.0)),
-        ).fetch(stock_codes, start_date, end_date)
+        ).fetch(stock_codes, start_date, price_end_date)
     else:
         raise ValueError(f"unsupported price_source: {price_source}")
 

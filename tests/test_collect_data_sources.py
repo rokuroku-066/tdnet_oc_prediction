@@ -99,3 +99,69 @@ def test_tdnet_public_client_without_pdf_extract(monkeypatch):
     df = client.fetch("2024-01-01", "2024-01-01")
     assert len(df) == 1
     assert df.iloc[0]["body_text"] == ""
+
+
+def test_collect_data_extends_price_period(tmp_path, monkeypatch):
+    cfg = tmp_path / "c.yaml"
+    out_d = tmp_path / "disclosures.csv"
+    out_p = tmp_path / "prices.csv"
+    cfg.write_text(
+        f"""
+project: {{name: tdnet_oc_prediction}}
+data:
+  disclosure_source: csv
+  price_source: csv
+  disclosure_path: {out_d}
+  price_path: {out_p}
+  start_date: '2024-01-01'
+  end_date: '2024-01-31'
+  price_extra_days: 10
+"""
+    )
+
+    disclosures = pd.DataFrame([
+        {
+            "disclosure_id": "x",
+            "disclosed_at": "2024-01-10T15:00:00+09:00",
+            "stock_code": "7203",
+            "title": "t",
+            "body_text": "b",
+        }
+    ])
+    prices = pd.DataFrame([
+        {
+            "stock_code": "7203",
+            "date": "2024-02-09",
+            "open": 1,
+            "high": 1,
+            "low": 1,
+            "close": 1,
+            "volume": 1,
+        }
+    ])
+
+    class FakeDisclosureClient:
+        def __init__(self, _path):
+            pass
+
+        def fetch(self, start, end):
+            assert start == "2024-01-01"
+            assert end == "2024-01-31"
+            return disclosures
+
+    class FakePriceClient:
+        def __init__(self, _path):
+            self.called = None
+
+        def fetch(self, codes, start, end):
+            assert codes == ["7203"]
+            assert start == "2024-01-01"
+            assert end == "2024-02-10"
+            return prices
+
+    monkeypatch.setattr(_mod, "DisclosureClient", FakeDisclosureClient)
+    monkeypatch.setattr(_mod, "PriceClient", FakePriceClient)
+
+    main(str(cfg))
+    assert out_d.exists()
+    assert out_p.exists()

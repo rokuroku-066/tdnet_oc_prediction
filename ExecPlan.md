@@ -1,10 +1,7 @@
 # ExecPlan
-## Current Task: TDnet/Stooq実データ対応の指摘反映
-- [x] 指摘事項（設定不足・TDnetパース堅牢性・検証処理）を確認。
-- [x] `configs/tdnet_stooq.yaml` に model/simulation を追加し、run_all系でも安全に実行可能化。
-- [x] `TDnetPublicClient` のリンク選択・文字コード・ページ上限・company_name推定・PDF抽出フラグを改善。
-- [x] `StooqClient` のNo data判定・UA設定を改善。
-- [x] `TextExtractor` をTDnet側から利用して重複実装を削減。
-- [x] `validate_disclosures` / `validate_prices` の日時正規化とnan文字列対策を実装。
-- [x] 既存/追加テストを更新して実行。
-- [x] コミット作成とPR記録。
+## Current Task: collect_data期間分離とREADME実データ手順追記
+- [x] 現状仕様確認（collect_data / build_dataset / README / config）。
+- [x] collect_dataで開示取得期間と価格取得期間を分離し、価格側のみ end_date+10日（設定で上書き可）を実装。
+- [x] 期間分離のユニットテストを追加・更新。
+- [x] READMEにtdnet_stooq.yaml利用手順（collect_data/build_dataset）と`tdnet_extract_pdf=false`疎通確認を追記。
+- [x] テスト実行、コミット、PRメッセージ作成。
