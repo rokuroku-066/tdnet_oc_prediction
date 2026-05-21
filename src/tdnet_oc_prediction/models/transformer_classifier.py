@@ -8,13 +8,16 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trai
 from .base import BaseModel
 
 class TransformerClassifier(BaseModel):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, defer_model_init: bool = False):
         self.config = config
         name = config.get("pretrained_model_name", "cl-tohoku/bert-base-japanese-v3")
         self.max_length = int(config.get("max_length", 512))
         self.batch_size = int(config.get("batch_size", 16))
-        self.tokenizer = AutoTokenizer.from_pretrained(name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(name, num_labels=2)
+        self.tokenizer = None
+        self.model = None
+        if not defer_model_init:
+            self.tokenizer = AutoTokenizer.from_pretrained(name)
+            self.model = AutoModelForSequenceClassification.from_pretrained(name, num_labels=2)
 
     def _tok(self, batch):
         return self.tokenizer(batch["text"], truncation=True, padding="max_length", max_length=self.max_length)
@@ -50,7 +53,7 @@ class TransformerClassifier(BaseModel):
 
     @classmethod
     def load(cls, path: str):
-        obj = cls({"pretrained_model_name": path})
+        obj = cls({"pretrained_model_name": path}, defer_model_init=True)
         obj.tokenizer = AutoTokenizer.from_pretrained(path)
         obj.model = AutoModelForSequenceClassification.from_pretrained(path)
         return obj
