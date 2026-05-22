@@ -54,7 +54,15 @@ def main(config_path: str, quiet_json: bool = False) -> str:
     out_dir = Path("models") / rid
     out_dir.mkdir(parents=True, exist_ok=True)
     model.save(str(out_dir / "model.pkl") if cfg.model["name"] != "transformer" else str(out_dir))
-    (out_dir / "config.yaml").write_text(yaml.safe_dump(cfg.model, allow_unicode=True), encoding="utf-8")
+    model_cfg = (
+        cfg.model.model_dump(mode="json")
+        if hasattr(cfg.model, "model_dump")
+        else dict(cfg.model)
+    )
+    (out_dir / "config.yaml").write_text(
+        yaml.safe_dump(model_cfg, allow_unicode=True),
+        encoding="utf-8",
+    )
     valid_proba = model.predict_proba(va)
     valid_metrics = Evaluator().evaluate(va["y"].values, valid_proba, cfg.model.get("threshold", 0.5))
     save_json(str(out_dir / "metrics_valid.json"), valid_metrics)
@@ -70,8 +78,12 @@ def main(config_path: str, quiet_json: bool = False) -> str:
             "valid": _label_distribution(va),
         },
         "config_summary": {
-            "model": cfg.model,
-            "split": cfg.split,
+            "model": model_cfg,
+            "split": (
+                cfg.split.model_dump(mode="json")
+                if hasattr(cfg.split, "model_dump")
+                else dict(cfg.split)
+            ),
             "seed": cfg.project.seed,
         },
     }
