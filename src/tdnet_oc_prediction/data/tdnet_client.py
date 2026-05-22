@@ -40,8 +40,14 @@ class TDnetPublicClient:
             response = self.session.get(pdf_url, timeout=self.timeout_sec)
             response.raise_for_status()
             return self.text_extractor.extract_pdf_bytes(response.content)
-        except Exception as exc:  # noqa: BLE001
-            LOGGER.warning("failed to parse pdf: %s (%s)", pdf_url, exc)
+        except requests.RequestException as exc:
+            LOGGER.warning("failed to fetch pdf %s: %s", pdf_url, exc)
+            return ""
+        except ValueError as exc:
+            LOGGER.warning("failed to parse pdf content %s: %s", pdf_url, exc)
+            return ""
+        except TypeError as exc:
+            LOGGER.warning("invalid pdf payload for %s: %s", pdf_url, exc)
             return ""
 
     @staticmethod
@@ -119,7 +125,7 @@ class TDnetPublicClient:
                 page_url = self._daily_page_url(d.date(), page)
                 try:
                     resp = self.session.get(page_url, timeout=self.timeout_sec)
-                except Exception as exc:  # noqa: BLE001
+                except requests.RequestException as exc:
                     LOGGER.warning("failed to fetch %s: %s", page_url, exc)
                     break
                 if resp.status_code == 404:

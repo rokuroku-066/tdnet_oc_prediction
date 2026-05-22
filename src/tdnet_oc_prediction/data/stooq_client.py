@@ -47,8 +47,10 @@ class StooqClient:
                         raise ValueError(f"missing column {col}")
                 df["stock_code"] = str(code)
                 rows.append(df[["stock_code", "date", "open", "high", "low", "close", "volume"]])
-            except Exception as exc:  # noqa: BLE001
-                LOGGER.warning("failed to fetch stooq %s: %s", code, exc)
+            except requests.RequestException as exc:
+                LOGGER.warning("failed to fetch stooq data for %s: %s", code, exc)
+            except (pd.errors.ParserError, ValueError, KeyError) as exc:
+                LOGGER.warning("failed to parse stooq response for %s: %s", code, exc)
             time.sleep(self.sleep_sec)
 
         out = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=["stock_code", "date", "open", "high", "low", "close", "volume"])
