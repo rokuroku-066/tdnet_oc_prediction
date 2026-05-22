@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime
 import json
+import logging
 from pathlib import Path
 import subprocess
 from zoneinfo import ZoneInfo
@@ -13,11 +14,17 @@ from tdnet_oc_prediction.utils.io import save_json
 from tdnet_oc_prediction.utils.logging import get_logger
 from tdnet_oc_prediction.utils.time import run_id
 
+LOGGER = logging.getLogger(__name__)
+
 
 def _get_git_commit_hash() -> str:
     try:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-    except Exception:
+    except subprocess.CalledProcessError as exc:
+        LOGGER.warning("failed to get git commit hash due to git command error: %s", exc)
+        return "UNAVAILABLE"
+    except FileNotFoundError as exc:
+        LOGGER.warning("failed to get git commit hash because git command was not found: %s", exc)
         return "UNAVAILABLE"
 
 
