@@ -1,9 +1,10 @@
 import argparse
+import json
 import subprocess
 from pathlib import Path
 
 
-def run_capture(cmd: list[str], step_name: str) -> str:
+def run_capture_json_run_id(cmd: list[str], step_name: str) -> str:
     try:
         proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
@@ -14,7 +15,18 @@ def run_capture(cmd: list[str], step_name: str) -> str:
             f"stderr:\n{e.stderr}"
         ) from e
     output = proc.stdout.strip()
-    return output.splitlines()[-1] if output else ""
+    if not output:
+        return ""
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"[{step_name}] stdout is not valid JSON.\n"
+            f"command: {' '.join(cmd)}\n"
+            f"stdout:\n{proc.stdout}"
+        ) from exc
+    run_id = payload.get("run_id")
+    return str(run_id) if run_id else ""
 
 
 def run(cmd: list[str], step_name: str) -> None:
@@ -37,7 +49,10 @@ def main(config: str):
     for split in ["train", "valid", "test"]:
         require_path(Path(f"data/splits/{split}.parquet"), "build_dataset", f"{split} split")
 
-    rid = run_capture(["python", "scripts/train.py", "--config", config], step_name="train")
+    rid = run_capture_json_run_id(
+        ["python", "scripts/train.py", "--config", config, "--quiet-json"],
+        step_name="train",
+    )
     if not rid:
         raise RuntimeError("[train] run_id is empty; cannot continue to evaluate/simulate")
     model_dir = Path("models") / rid
