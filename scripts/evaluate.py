@@ -6,7 +6,6 @@ from tdnet_oc_prediction.config.loader import load_config
 from tdnet_oc_prediction.evaluation.evaluator import Evaluator
 from tdnet_oc_prediction.models.majority import MajorityBaseline
 from tdnet_oc_prediction.models.tfidf_logreg import TfidfLogRegModel
-from tdnet_oc_prediction.models.transformer_classifier import TransformerClassifier
 from tdnet_oc_prediction.utils.io import save_df, save_json
 
 
@@ -16,6 +15,8 @@ def load_model(model_name: str, model_dir: str):
     if model_name == "tfidf_logreg":
         return TfidfLogRegModel.load(model_dir)
     if model_name == "transformer":
+        from tdnet_oc_prediction.models.transformer_classifier import TransformerClassifier
+
         return TransformerClassifier.load(model_dir)
     raise ValueError(model_name)
 
