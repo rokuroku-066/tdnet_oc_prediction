@@ -12,6 +12,19 @@ def test_dataset_builder_aggregate_and_target():
     assert len(out)==1 and out.iloc[0]['num_disclosures']==2 and out.iloc[0]['y']==1
 
 
+def test_dataset_builder_output_schema_contains_text_column():
+    disclosures = pd.DataFrame([
+        {'disclosure_id':'1','stock_code':'7203','disclosure_date':'2024-01-04','title':'A','body_text':'a'},
+    ])
+    prices = pd.DataFrame([
+        {'stock_code':'7203','date':'2024-01-05','open':100,'close':110},
+    ])
+
+    out = DatasetBuilder().build(disclosures, prices)
+
+    assert "text" in out.columns
+
+
 def test_time_series_splitter_raises_on_overlapped_periods():
     dataset = pd.DataFrame([
         {"disclosure_date": "2024-01-05"},
