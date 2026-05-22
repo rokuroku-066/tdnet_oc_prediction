@@ -15,8 +15,11 @@ class DatasetBuilder:
         d["disclosure_date"] = pd.to_datetime(d["disclosure_date"]).dt.normalize()
         d["text_piece"] = "[" + d["title"] + "]\n" + d["body_text"]
         agg = d.groupby(["stock_code", "disclosure_date"], as_index=False).agg(
-            text=("text_piece", "\n\n".join), num_disclosures=("disclosure_id", "count")
+            text=("text_piece", "\n\n".join),
+            num_disclosures=("disclosure_id", "count"),
         )
+        if "text" not in agg.columns:
+            raise ValueError("Aggregation failed to create required 'text' column")
         prices = prices.copy()
         prices["date"] = pd.to_datetime(prices["date"]).dt.normalize()
         if calendar is not None:
@@ -44,8 +47,27 @@ class DatasetBuilder:
         )
         merged = merged.dropna(subset=["target_date", "target_open", "target_close", "y"]).copy()
         merged["y"] = merged["y"].astype(int)
-        merged["sample_id"] = merged["stock_code"].astype(str) + "_" + merged["disclosure_date"].dt.strftime("%Y-%m-%d")
-        return merged[["sample_id","stock_code","disclosure_date","target_date","text","target_open","target_close","y","num_disclosures"]]
+        merged["sample_id"] = merged["stock_code"].astype(str) + "_" + merged[
+            "disclosure_date"
+        ].dt.strftime("%Y-%m-%d")
+
+        output_columns = [
+            "sample_id",
+            "stock_code",
+            "disclosure_date",
+            "target_date",
+            "text",
+            "target_open",
+            "target_close",
+            "y",
+            "num_disclosures",
+        ]
+        missing_output_columns = sorted(set(output_columns) - set(merged.columns))
+        if missing_output_columns:
+            raise ValueError(
+                f"dataset is missing required output columns: {missing_output_columns}"
+            )
+        return merged[output_columns]
 
 class TimeSeriesSplitter:
     def __init__(self, split_conf: dict):
