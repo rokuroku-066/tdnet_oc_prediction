@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+import json
 from pathlib import Path
 import subprocess
 from zoneinfo import ZoneInfo
@@ -9,6 +10,7 @@ from tdnet_oc_prediction.config.loader import load_config
 from tdnet_oc_prediction.evaluation.evaluator import Evaluator
 from tdnet_oc_prediction.training.trainer import TrainerService
 from tdnet_oc_prediction.utils.io import save_json
+from tdnet_oc_prediction.utils.logging import get_logger
 from tdnet_oc_prediction.utils.time import run_id
 
 
@@ -35,7 +37,8 @@ def _label_distribution(df: pd.DataFrame) -> dict[str, dict[str, float]]:
     return distribution
 
 
-def main(config_path: str) -> str:
+def main(config_path: str, quiet_json: bool = False) -> str:
+    logger = get_logger("tdnet_oc_prediction.scripts.train")
     cfg = load_config(config_path)
     tr = pd.read_parquet("data/splits/train.parquet")
     va = pd.read_parquet("data/splits/valid.parquet")
@@ -66,12 +69,19 @@ def main(config_path: str) -> str:
         },
     }
     save_json(str(out_dir / "train_log.json"), log_payload)
-    print(rid)
+    logger.info("Training completed successfully. run_id=%s model_dir=%s", rid, out_dir)
+    if quiet_json:
+        print(json.dumps({"run_id": rid}, ensure_ascii=False))
     return rid
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
+    ap.add_argument(
+        "--quiet-json",
+        action="store_true",
+        help="Emit machine-readable run_id to stdout as JSON.",
+    )
     args = ap.parse_args()
-    main(args.config)
+    main(args.config, quiet_json=args.quiet_json)
